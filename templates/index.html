@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Interview Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/style.css"/>
+</head>
+<body>
+
+  <!-- SCREEN 1: SETUP -->
+  <div id="screen-setup" class="screen active">
+    <div class="setup-wrapper">
+      <div class="setup-header">
+        <div class="logo-mark">AI</div>
+        <h1>Interview<br/><span class="accent">Simulator</span></h1>
+        <p class="tagline">Practice with an AI interviewer. Get real feedback. Get ready.</p>
+      </div>
+      <div class="setup-card">
+        <div class="field-group">
+          <label class="field-label">Job Domain</label>
+          <div class="chip-group" id="domain-chips">
+            <button class="chip active" data-value="AI/ML">AI / ML</button>
+            <button class="chip" data-value="Software Development">Software Dev</button>
+            <button class="chip" data-value="Data Science">Data Science</button>
+            <button class="chip" data-value="System Design">System Design</button>
+            <button class="chip" data-value="HR/Behavioral">HR / Behavioral</button>
+            <button class="chip" data-value="DSA">DSA</button>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Difficulty</label>
+          <div class="chip-group" id="difficulty-chips">
+            <button class="chip" data-value="Easy">Easy</button>
+            <button class="chip active" data-value="Medium">Medium</button>
+            <button class="chip" data-value="Hard">Hard</button>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Number of Questions</label>
+          <div class="question-count-wrapper">
+            <button class="count-btn" id="btn-minus" onclick="changeCount(-1)">−</button>
+            <div class="count-display-box">
+              <span id="count-display">5</span>
+              <span class="count-max-label">/ 15</span>
+            </div>
+            <button class="count-btn" id="btn-plus" onclick="changeCount(1)">+</button>
+          </div>
+          <p class="count-hint">1 minimum · 15 maximum</p>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Interview Mode</label>
+          <div class="mode-toggle-group">
+            <label class="mode-card active" id="mode-text-card">
+              <input type="radio" name="interview-mode" value="text" checked/>
+              <div class="mode-card-inner">
+                <span class="mode-icon">⌨</span>
+                <span class="mode-title">Text Mode</span>
+                <span class="mode-desc">Type your answers</span>
+              </div>
+            </label>
+            <label class="mode-card mode-card-real" id="mode-voice-card">
+              <input type="radio" name="interview-mode" value="voice"/>
+              <div class="mode-card-inner">
+                <span class="mode-icon">🤖</span>
+                <span class="mode-title">Real Interview with AI</span>
+                <span class="mode-desc">Live AI call experience</span>
+              </div>
+            </label>
+          </div>
+        </div>
+        <div class="field-group" id="voice-options-group" style="display:none;">
+          <label class="field-label">Interviewer Voice</label>
+          <div class="chip-group" id="voice-chips">
+            <button class="chip active" data-value="male">Male</button>
+            <button class="chip" data-value="female">Female</button>
+          </div>
+        </div>
+        <div class="field-group" id="resume-group">
+          <label class="field-label">Resume <span class="field-label-optional">(optional)</span></label>
+          <p class="field-hint">Upload or paste your resume to get personalised questions based on your background.</p>
+
+          <!-- Toggle between paste and upload -->
+          <div class="resume-mode-toggle">
+            <button class="resume-tab active" id="resume-tab-paste" onclick="switchResumeTab('paste')">Paste Text</button>
+            <button class="resume-tab" id="resume-tab-upload" onclick="switchResumeTab('upload')">Upload File</button>
+          </div>
+
+          <!-- Paste area -->
+          <div id="resume-paste-area">
+            <textarea id="resume-text-input" class="resume-textarea"
+              placeholder="Paste your resume text here — skills, experience, projects..."
+              oninput="onResumeTextInput()"></textarea>
+            <div class="resume-char-count" id="resume-char-count">0 / 3000 characters</div>
+          </div>
+
+          <!-- Upload area -->
+          <div id="resume-upload-area" style="display:none;">
+            <label class="resume-dropzone" id="resume-dropzone" for="resume-file-input">
+              <input type="file" id="resume-file-input" accept=".txt,.pdf" style="display:none;" onchange="onResumeFileSelected(event)"/>
+              <span class="resume-drop-icon">📄</span>
+              <span class="resume-drop-text" id="resume-drop-text">Drop a .txt or .pdf file here, or click to browse</span>
+            </label>
+          </div>
+
+          <!-- Resume status indicator -->
+          <div class="resume-status" id="resume-status" style="display:none;"></div>
+
+          <!-- Clear button -->
+          <button class="btn-ghost resume-clear-btn" id="resume-clear-btn" onclick="clearResume()" style="display:none;">
+            ✕ Clear Resume
+          </button>
+        </div>
+
+        <button class="btn-primary" onclick="startInterview()">Start Interview →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: TEXT MODE INTERVIEW -->
+  <div id="screen-interview" class="screen">
+    <div class="interview-topbar">
+      <div class="topbar-left">
+        <span id="badge-domain" class="badge">AI/ML</span>
+        <span id="badge-difficulty" class="badge badge-diff">Medium</span>
+      </div>
+      <div class="topbar-center">
+        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+        <span class="progress-label" id="progress-label">Question 1 of 5</span>
+      </div>
+      <div class="topbar-right">
+        <button class="btn-ghost" onclick="confirmReset()">↩ Reset</button>
+      </div>
+    </div>
+    <div class="interview-body">
+      <div class="question-panel" id="question-panel">
+        <div id="question-loading" class="loading-state">
+          <div class="spinner"></div><p>Generating question...</p>
+        </div>
+        <div id="question-content" style="display:none;">
+          <div class="q-number" id="q-number">Q1</div>
+          <div class="q-text" id="q-text"></div>
+          <button class="btn-ghost btn-refresh" id="btn-refresh-question" onclick="refreshQuestion()" style="display:none; margin:12px 0;">🔄 Generate Different Question</button>
+          <div id="text-input-area" class="answer-area">
+            <div class="answer-header">
+              <label class="field-label">Your Answer</label>
+              <span class="word-count" id="word-count">0 words</span>
+            </div>
+            <textarea id="answer-input" class="answer-textarea" placeholder="Type your answer here..." oninput="updateWordCount()"></textarea>
+          </div>
+          <button class="btn-primary" id="btn-submit" onclick="submitAnswer()">Submit Answer →</button>
+        </div>
+      </div>
+      <div class="feedback-panel" id="feedback-panel">
+        <div id="feedback-placeholder" class="feedback-placeholder">
+          <div class="placeholder-icon">💬</div>
+          <p>Your feedback will appear here after you submit your answer.</p>
+        </div>
+        <div id="feedback-loading" class="loading-state" style="display:none;">
+          <div class="spinner"></div><p>Evaluating your answer...</p>
+        </div>
+        <div id="feedback-content" style="display:none;">
+          <div class="score-row">
+            <div class="score-card"><div class="score-value" id="score-tech">-</div><div class="score-label">Technical</div></div>
+            <div class="score-card"><div class="score-value" id="score-depth">-</div><div class="score-label">Depth</div></div>
+            <div class="score-card"><div class="score-value" id="score-clarity">-</div><div class="score-label">Clarity</div></div>
+            <div class="score-card score-card-overall"><div class="score-value" id="score-overall">-</div><div class="score-label">Overall</div></div>
+          </div>
+          <div class="feedback-block">
+            <div class="feedback-block-label">Interviewer's Feedback</div>
+            <div class="feedback-text" id="feedback-text"></div>
+          </div>
+          <div class="feedback-block hint-block">
+            <div class="feedback-block-label">What to Improve</div>
+            <div class="feedback-text" id="hint-text"></div>
+          </div>
+          <div id="reaction-container" class="feedback-block reaction-block" style="display:none;">
+            <div class="feedback-block-label">Interviewer says:</div>
+            <div class="feedback-text" id="reaction-text"></div>
+          </div>
+          <!-- Confidence scoring block -->
+          <div id="confidence-block" style="display:none;" class="confidence-block">
+            <div class="confidence-header">
+              <span class="confidence-label">💬 Confidence Analysis</span>
+              <span class="confidence-overall" id="confidence-overall-text">--/10</span>
+            </div>
+            <!-- Segmented battery bar -->
+            <div class="confidence-battery" id="confidence-battery">
+              <div class="battery-segments" id="battery-segments"></div>
+              <div class="battery-tip"></div>
+            </div>
+            <!-- 4 dimension mini bars -->
+            <div class="confidence-dims" id="confidence-dims">
+              <div class="conf-dim">
+                <span class="conf-dim-label">Certainty</span>
+                <div class="conf-dim-track"><div class="conf-dim-fill" id="dim-certainty"></div></div>
+                <span class="conf-dim-score" id="dim-certainty-score">-</span>
+              </div>
+              <div class="conf-dim">
+                <span class="conf-dim-label">Structure</span>
+                <div class="conf-dim-track"><div class="conf-dim-fill" id="dim-structure"></div></div>
+                <span class="conf-dim-score" id="dim-structure-score">-</span>
+              </div>
+              <div class="conf-dim">
+                <span class="conf-dim-label">Assertiveness</span>
+                <div class="conf-dim-track"><div class="conf-dim-fill" id="dim-assertiveness"></div></div>
+                <span class="conf-dim-score" id="dim-assertiveness-score">-</span>
+              </div>
+              <div class="conf-dim">
+                <span class="conf-dim-label">Vocabulary</span>
+                <div class="conf-dim-track"><div class="conf-dim-fill" id="dim-vocabulary"></div></div>
+                <span class="conf-dim-score" id="dim-vocabulary-score">-</span>
+              </div>
+            </div>
+            <!-- Coaching tip -->
+            <div class="confidence-tip" id="confidence-tip"></div>
+          </div>
+
+          <div id="followup-block" style="display:none;" class="followup-block">
+            <div class="followup-header">
+              <span class="followup-badge">🔍 Follow-up</span>
+              <span class="followup-subtitle">Score was below 7 — let's dig deeper</span>
+            </div>
+            <div class="followup-question" id="followup-question-text"></div>
+            <div id="followup-text-area">
+              <textarea id="followup-answer-input" class="answer-textarea followup-textarea" placeholder="Answer the follow-up question..."></textarea>
+            </div>
+            <div id="followup-result" style="display:none;"></div>
+            <div class="followup-actions">
+              <button class="btn-primary followup-submit-btn" id="btn-submit-followup" onclick="submitFollowUp()">Submit Follow-up →</button>
+              <button class="btn-ghost" id="btn-skip-followup" onclick="skipFollowUp()">Skip →</button>
+            </div>
+          </div>
+          <button class="btn-primary" id="btn-next" onclick="nextQuestion()" disabled>Next Question →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: REAL INTERVIEW WITH AI (CALL MODE) -->
+  <div id="screen-call" class="screen">
+    <div class="call-grain"></div>
+    <div class="call-topbar">
+      <div class="call-meta">
+        <span id="call-badge-domain" class="call-badge">AI/ML</span>
+        <span id="call-badge-diff" class="call-badge call-badge-diff">Medium</span>
+      </div>
+      <div class="call-timer-wrap">
+        <span class="call-timer-dot"></span>
+        <span id="call-timer">00:00</span>
+      </div>
+      <button class="btn-end-call" onclick="confirmEndCall()">⏹ End Call</button>
+    </div>
+
+    <div class="call-center">
+      <div class="orb-system orb-idle" id="orb-system">
+        <div class="orb-ring orb-ring-3"></div>
+        <div class="orb-ring orb-ring-2"></div>
+        <div class="orb-ring orb-ring-1"></div>
+        <div class="orb-core">
+          <svg class="ai-face" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="10" y="8" width="60" height="64" rx="18" fill="rgba(74,144,217,0.12)" stroke="rgba(74,144,217,0.5)" stroke-width="1.5"/>
+            <rect class="ai-eye" x="22" y="28" width="14" height="10" rx="5" fill="#4a90d9"/>
+            <rect class="ai-eye" x="44" y="28" width="14" height="10" rx="5" fill="#4a90d9"/>
+            <g id="ai-mouth-bars">
+              <rect x="26" y="50" width="4" height="8" rx="2" fill="#4a90d9" opacity="0.5"/>
+              <rect x="33" y="46" width="4" height="12" rx="2" fill="#4a90d9" opacity="0.7"/>
+              <rect x="40" y="48" width="4" height="10" rx="2" fill="#4a90d9" opacity="0.6"/>
+              <rect x="47" y="52" width="4" height="6" rx="2" fill="#4a90d9" opacity="0.4"/>
+            </g>
+            <line x1="40" y1="8" x2="40" y2="2" stroke="rgba(74,144,217,0.5)" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="40" cy="1" r="2" fill="#4a90d9"/>
+          </svg>
+        </div>
+      </div>
+      <div class="ai-status-text" id="ai-status-text">Connecting...</div>
+      <div class="call-question-counter" id="call-question-counter">Question 1 of 5</div>
+    </div>
+
+    <div class="call-bottom">
+      <div class="call-question-card" id="call-question-card">
+        <div class="call-q-loading" id="call-q-loading">
+          <div class="spinner spinner-sm"></div>
+          <span>Generating question...</span>
+        </div>
+        <div id="call-q-content" style="display:none;">
+          <div class="call-q-label">Question <span id="call-q-num">1</span></div>
+          <div class="call-q-text" id="call-q-text"></div>
+        </div>
+      </div>
+
+      <div class="call-transcript-area" id="call-transcript-area" style="display:none;">
+        <div class="call-transcript-label">Your answer</div>
+        <div class="call-transcript-text" id="call-transcript-text"></div>
+      </div>
+
+      <!-- Feature 4: Silence auto-submit prompt -->
+      <div class="call-silence-prompt" id="call-silence-prompt" style="display:none;">
+        <span>Done speaking? Submitting in <strong id="call-silence-countdown">8</strong>s</span>
+        <div class="call-silence-actions">
+          <button class="btn-silence-submit" onclick="callSubmitNow()">Submit Now</button>
+          <button class="btn-silence-keep" onclick="callKeepRecording()">Keep Recording</button>
+        </div>
+      </div>
+
+      <div class="call-controls">
+        <div class="call-mic-status" id="call-mic-status">Tap mic to start answering</div>
+        <button class="call-mic-btn" id="call-mic-btn" onclick="toggleCallMic()">
+          <span id="call-mic-icon">🎤</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Feedback overlay after evaluation -->
+    <div class="call-feedback-overlay" id="call-feedback-overlay" style="display:none;">
+      <div class="call-feedback-inner">
+        <div class="call-feedback-scores">
+          <div class="call-score-pill" id="call-score-tech">Tech: -</div>
+          <div class="call-score-pill" id="call-score-depth">Depth: -</div>
+          <div class="call-score-pill" id="call-score-clarity">Clarity: -</div>
+          <div class="call-score-pill call-score-overall" id="call-score-overall">Overall: -</div>
+        </div>
+        <div class="call-feedback-text" id="call-feedback-text"></div>
+
+        <!-- Feature 5: AI interruption follow-up -->
+        <!-- Call mode confidence block -->
+        <div id="call-confidence-block" style="display:none;" class="confidence-block confidence-block-call">
+          <div class="confidence-header">
+            <span class="confidence-label">💬 Confidence</span>
+            <span class="confidence-overall" id="call-confidence-overall-text">--/10</span>
+          </div>
+          <div class="confidence-battery">
+            <div class="battery-segments" id="call-battery-segments"></div>
+            <div class="battery-tip"></div>
+          </div>
+          <div class="confidence-dims" id="call-confidence-dims">
+            <div class="conf-dim">
+              <span class="conf-dim-label">Certainty</span>
+              <div class="conf-dim-track"><div class="conf-dim-fill" id="call-dim-certainty"></div></div>
+              <span class="conf-dim-score" id="call-dim-certainty-score">-</span>
+            </div>
+            <div class="conf-dim">
+              <span class="conf-dim-label">Structure</span>
+              <div class="conf-dim-track"><div class="conf-dim-fill" id="call-dim-structure"></div></div>
+              <span class="conf-dim-score" id="call-dim-structure-score">-</span>
+            </div>
+            <div class="conf-dim">
+              <span class="conf-dim-label">Assertiveness</span>
+              <div class="conf-dim-track"><div class="conf-dim-fill" id="call-dim-assertiveness"></div></div>
+              <span class="conf-dim-score" id="call-dim-assertiveness-score">-</span>
+            </div>
+            <div class="conf-dim">
+              <span class="conf-dim-label">Vocabulary</span>
+              <div class="conf-dim-track"><div class="conf-dim-fill" id="call-dim-vocabulary"></div></div>
+              <span class="conf-dim-score" id="call-dim-vocabulary-score">-</span>
+            </div>
+          </div>
+          <div class="confidence-tip" id="call-confidence-tip"></div>
+        </div>
+
+        <div id="call-interruption-block" style="display:none;" class="call-interruption-block">
+          <div class="call-interruption-label">🔍 AI Follow-up Question</div>
+          <div class="call-interruption-q" id="call-interruption-q"></div>
+          <div class="call-interruption-transcript" id="call-interruption-transcript" style="display:none;"></div>
+          <div class="call-interruption-actions">
+            <button class="call-mic-btn call-mic-btn-sm" id="call-interrupt-mic-btn" onclick="toggleInterruptMic()">🎤</button>
+            <button class="btn-silence-submit" id="btn-submit-interruption" onclick="submitInterruption()" style="display:none;">Submit →</button>
+            <button class="btn-silence-keep" onclick="skipInterruption()">Skip</button>
+          </div>
+        </div>
+
+        <button class="btn-call-next" id="btn-call-next" onclick="callNextQuestion()" disabled>Next Question →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: FINAL REPORT -->
+  <div id="screen-report" class="screen">
+    <div class="report-wrapper">
+      <div class="report-header">
+        <div class="report-header-left">
+          <div class="logo-mark">AI</div>
+          <div>
+            <h2>Performance Report</h2>
+            <p class="report-subtitle" id="report-subtitle">Loading...</p>
+          </div>
+        </div>
+        <div class="report-header-right">
+          <button class="btn-speak-report" id="btn-speak-report" onclick="speakFinalReport()" style="display:none;">🔊 Hear Summary</button>
+          <button class="btn-ghost" onclick="resetInterview()">Start New Interview</button>
+        </div>
+      </div>
+      <div id="report-loading" class="loading-state">
+        <div class="spinner spinner-large"></div>
+        <p>Generating your performance report...</p>
+      </div>
+      <div id="report-content" style="display:none;">
+        <div class="report-hero">
+          <div class="report-score-circle">
+            <svg viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(74,144,217,0.12)" stroke-width="8"/>
+              <circle cx="60" cy="60" r="52" fill="none" stroke="url(#scoreGrad)" stroke-width="8"
+                stroke-linecap="round" stroke-dasharray="326.7" id="report-score-arc"
+                stroke-dashoffset="326.7" style="transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset 1.2s ease;"/>
+              <defs>
+                <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#4a90d9"/>
+                  <stop offset="100%" stop-color="#7c5cbf"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="report-score-inner">
+              <div class="report-score-num" id="report-score-num">--</div>
+              <div class="report-score-denom">/10</div>
+            </div>
+          </div>
+          <div class="report-hero-text">
+            <div class="report-readiness" id="report-readiness">--</div>
+            <div class="report-summary" id="report-summary"></div>
+            <div class="report-encouragement" id="report-encouragement"></div>
+          </div>
+        </div>
+        <div class="report-two-col">
+          <div class="report-col report-col-strong">
+            <div class="report-col-label">💪 Strongest Areas</div>
+            <ul class="report-list" id="report-strengths"></ul>
+          </div>
+          <div class="report-col report-col-weak">
+            <div class="report-col-label">🎯 Top Improvements</div>
+            <ul class="report-list" id="report-improvements"></ul>
+          </div>
+        </div>
+        <div class="report-questions-section">
+          <div class="report-section-label">Question Breakdown</div>
+          <div id="report-questions-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── Session state ──────────────────────────────────────────────────────
+    let session = {
+      domain: "AI/ML", difficulty: "Medium", numQuestions: 5,
+      currentQuestion: 0, askedQuestions: [], currentQuestionText: "",
+      qaHistory: [], mode: "text", voiceGender: "male",
+      resumeContext: ""    // ← resume text, empty if not provided
+    };
+
+    let recognition = null;
+    let isRecording = false;
+    let currentTranscript = "";
+    let committedTranscript = "";
+    let availableVoices = [];
+    let preferredVoice = null;
+
+    // Call mode state
+    let callTimerInterval = null;
+    let callSeconds = 0;
+    let silenceTimer = null;
+    let silenceCountdownTimer = null;
+    let silenceSeconds = 0;
+    let silenceCountdownVal = 8;
+
+    // Feature 5
+    let sessionInterruptionUsed = false;
+    let interruptRecognition = null;
+    let isInterruptRecording = false;
+    let interruptCommitted = "";
+
+    // ── Init ───────────────────────────────────────────────────────────────
+    window.addEventListener('load', () => {
+      initializeCountButtons();
+      updateModeVisibility();
+      if ('speechSynthesis' in window) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+        speechSynthesis.getVoices();
+      }
+      document.getElementById('domain-chips').addEventListener('click', e => {
+        if (e.target.tagName === 'BUTTON') selectChip(e.target, 'domain-chips', v => session.domain = v);
+      });
+      document.getElementById('difficulty-chips').addEventListener('click', e => {
+        if (e.target.tagName === 'BUTTON') selectChip(e.target, 'difficulty-chips', v => session.difficulty = v);
+      });
+      document.getElementById('voice-chips').addEventListener('click', e => {
+        if (e.target.tagName === 'BUTTON') {
+          selectChip(e.target, 'voice-chips');
+          session.voiceGender = e.target.dataset.value;
+          updatePreferredVoice();
+        }
+      });
+      document.querySelectorAll('input[name="interview-mode"]').forEach(r => r.addEventListener('change', updateModeVisibility));
+    });
+
+    function loadVoices() {
+      availableVoices = speechSynthesis.getVoices();
+      if (availableVoices.length > 0) updatePreferredVoice();
+    }
+
+    function updatePreferredVoice() {
+      if (!availableVoices.length) return;
+      const fp = ['female','zira','hazel','aria','samantha','karen','tara'];
+      const mp = ['male','david','george','alex'];
+      const filter = session.voiceGender === 'female' ? fp : mp;
+      const candidates = availableVoices.filter(v => filter.some(p => v.name.toLowerCase().includes(p)));
+      preferredVoice = candidates.length > 0 ? candidates[0] : availableVoices[0];
+    }
+
+    function initializeCountButtons() {
+      const c = parseInt(document.getElementById('count-display').textContent);
+      document.getElementById('btn-minus').disabled = c <= 1;
+      document.getElementById('btn-plus').disabled  = c >= 15;
+    }
+
+    function changeCount(delta) {
+      const el = document.getElementById('count-display');
+      const n = parseInt(el.textContent) + delta;
+      if (n >= 1 && n <= 15) { el.textContent = n; session.numQuestions = n; initializeCountButtons(); }
+    }
+
+    function selectChip(btn, groupId, cb = null) {
+      document.querySelectorAll(`#${groupId} .chip`).forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (cb) cb(btn.dataset.value);
+    }
+
+    function updateModeVisibility() {
+      const mode = document.querySelector('input[name="interview-mode"]:checked').value;
+      session.mode = mode;
+      document.getElementById('voice-options-group').style.display = mode === 'voice' ? 'block' : 'none';
+      document.getElementById('mode-text-card').classList.toggle('active', mode === 'text');
+      document.getElementById('mode-voice-card').classList.toggle('active', mode === 'voice');
+    }
+
+    // ── Start interview ────────────────────────────────────────────────────
+    async function startInterview() {
+      session.currentQuestion = 0;
+      session.askedQuestions = [];
+      session.qaHistory = [];
+      session.currentQuestionText = "";
+      sessionInterruptionUsed = false;
+      // Capture resume at interview start (don't change mid-session)
+      session.resumeContext = document.getElementById('resume-text-input').value.trim().slice(0, 3000);
+
+      if (session.mode === 'voice') {
+        showScreen('screen-call');
+        document.getElementById('call-badge-domain').textContent = session.domain;
+        document.getElementById('call-badge-diff').textContent = session.difficulty;
+        startCallTimer();
+        setOrbState('thinking');
+        setAiStatus('Connecting...');
+        await sleep(1000);
+        setAiStatus('Preparing your first question...');
+        await loadCallQuestion();
+      } else {
+        document.getElementById('badge-domain').textContent = session.domain;
+        document.getElementById('badge-difficulty').textContent = session.difficulty;
+        showScreen('screen-interview');
+        await loadNextQuestion();
+      }
+    }
+
+    // ── TEXT MODE FLOW ─────────────────────────────────────────────────────
+    async function loadNextQuestion() {
+      document.getElementById('question-loading').style.display = 'flex';
+      document.getElementById('question-content').style.display = 'none';
+      session.currentQuestion++;
+      document.getElementById('q-number').textContent = `Q${session.currentQuestion}`;
+      document.getElementById('progress-fill').style.width = `${(session.currentQuestion/session.numQuestions)*100}%`;
+      document.getElementById('progress-label').textContent = `Question ${session.currentQuestion} of ${session.numQuestions}`;
+      try {
+        const res = await fetch('/generate-question', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ domain:session.domain, difficulty:session.difficulty, asked_questions:session.askedQuestions, resume_context:session.resumeContext }) });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        session.currentQuestionText = data.question;
+        document.getElementById('q-text').textContent = data.question;
+        session.askedQuestions.push(data.question);
+        document.getElementById('question-loading').style.display = 'none';
+        document.getElementById('question-content').style.display = 'block';
+        document.getElementById('answer-input').value = '';
+        updateWordCount();
+        document.getElementById('btn-refresh-question').style.display = 'inline-flex';
+      } catch(err) { document.getElementById('q-text').textContent = 'Failed to load question.'; }
+    }
+
+    async function refreshQuestion() {
+      const btn = document.getElementById('btn-refresh-question');
+      btn.disabled = true; btn.textContent = 'Generating...';
+      document.getElementById('question-loading').style.display = 'flex';
+      document.getElementById('question-content').style.display = 'none';
+      try {
+        const res = await fetch('/generate-question', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ domain:session.domain, difficulty:session.difficulty, asked_questions:session.askedQuestions, resume_context:session.resumeContext }) });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        session.currentQuestionText = data.question;
+        document.getElementById('q-text').textContent = data.question;
+        session.askedQuestions.push(data.question);
+        document.getElementById('question-loading').style.display = 'none';
+        document.getElementById('question-content').style.display = 'block';
+        document.getElementById('answer-input').value = ''; updateWordCount();
+      } catch(err) { document.getElementById('q-text').textContent = 'Failed to generate question.'; }
+      finally { btn.disabled = false; btn.textContent = '🔄 Generate Different Question'; }
+    }
+
+    async function submitAnswer() {
+      const answer = document.getElementById('answer-input').value.trim();
+      if (!answer) { document.getElementById('answer-input').classList.add('shake'); setTimeout(() => document.getElementById('answer-input').classList.remove('shake'), 400); return; }
+      document.getElementById('btn-submit').disabled = true;
+      document.getElementById('btn-submit').textContent = 'Evaluating...';
+      document.getElementById('feedback-placeholder').style.display = 'none';
+      document.getElementById('feedback-loading').style.display = 'flex';
+      document.getElementById('feedback-content').style.display = 'none';
+      document.getElementById('followup-block').style.display = 'none';
+      document.getElementById('confidence-block').style.display = 'none';
+      try {
+        // Fire evaluation and confidence analysis in parallel
+        const [res, confData] = await Promise.all([
+          fetch('/evaluate-answer', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ domain:session.domain, difficulty:session.difficulty, question:session.currentQuestionText, answer }) }),
+          fetchConfidence(session.currentQuestionText, answer)
+        ]);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        session.qaHistory.push({ question:session.currentQuestionText, answer, scores:{ technical_score:data.technical_score, depth_score:data.depth_score, clarity_score:data.clarity_score, overall_score:data.overall_score }, feedback:data.short_feedback });
+        document.getElementById('score-tech').textContent    = data.technical_score+"/10";
+        document.getElementById('score-depth').textContent   = data.depth_score+"/10";
+        document.getElementById('score-clarity').textContent = data.clarity_score+"/10";
+        document.getElementById('score-overall').textContent = data.overall_score+"/10";
+        document.getElementById('score-overall').className   = "score-value "+getScoreClass(data.overall_score);
+        document.getElementById('feedback-text').textContent = data.short_feedback;
+        document.getElementById('hint-text').textContent     = data.ideal_answer_hint;
+        document.getElementById('feedback-loading').style.display = 'none';
+        document.getElementById('feedback-content').style.display = 'block';
+        // Render confidence meter
+        renderConfidence(confData, '');
+        const isLast = session.currentQuestion >= session.numQuestions;
+        try {
+          let reaction;
+          if (isLast) { const l=["That wraps up our session.","And that's a wrap.","Last one done. Let's see your report.","Interview complete."]; reaction=l[Math.floor(Math.random()*l.length)]; }
+          else { const rr=await fetch('/generate-reaction',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain:session.domain,question:session.currentQuestionText,answer,short_feedback:data.short_feedback,overall_score:data.overall_score})}); const rd=await rr.json(); reaction=rd.reaction||"Let's keep going."; }
+          document.getElementById('reaction-text').textContent = reaction;
+          document.getElementById('reaction-container').style.display = 'block';
+        } catch(e) { console.warn('Reaction failed',e); }
+        if (data.overall_score < 7) await handleFollowUp(answer, data);
+        document.getElementById('btn-next').textContent = isLast ? "View Final Report →" : "Next Question →";
+        document.getElementById('btn-next').disabled = false;
+      } catch(err) {
+        document.getElementById('feedback-loading').style.display = 'none';
+        document.getElementById('feedback-placeholder').innerHTML = `<p style="color:#e05c6a">Evaluation failed: ${err.message}</p>`;
+        document.getElementById('feedback-placeholder').style.display = 'flex';
+      } finally {
+        document.getElementById('btn-submit').disabled = false;
+        document.getElementById('btn-submit').textContent = "Submit Answer →";
+      }
+    }
+
+    async function nextQuestion() {
+      const btn = document.getElementById('btn-next');
+      btn.disabled = true; btn.textContent = "Loading...";
+      if (session.currentQuestion >= session.numQuestions) { showFinalReport(); return; }
+      document.getElementById('feedback-placeholder').style.display = 'flex';
+      document.getElementById('feedback-content').style.display = 'none';
+      document.getElementById('followup-block').style.display = 'none';
+      document.getElementById('confidence-block').style.display = 'none';
+      document.getElementById('reaction-container').style.display = 'none';
+      await loadNextQuestion();
+      btn.disabled = false; btn.textContent = "Next Question →";
+    }
+
+    // ── CALL MODE FLOW ─────────────────────────────────────────────────────
+    async function loadCallQuestion() {
+      document.getElementById('call-q-loading').style.display = 'flex';
+      document.getElementById('call-q-content').style.display = 'none';
+      document.getElementById('call-transcript-area').style.display = 'none';
+      document.getElementById('call-feedback-overlay').style.display = 'none';
+      document.getElementById('call-silence-prompt').style.display = 'none';
+      session.currentQuestion++;
+      document.getElementById('call-question-counter').textContent = `Question ${session.currentQuestion} of ${session.numQuestions}`;
+      document.getElementById('call-q-num').textContent = session.currentQuestion;
+      try {
+        const res = await fetch('/generate-question', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ domain:session.domain, difficulty:session.difficulty, asked_questions:session.askedQuestions, resume_context:session.resumeContext }) });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        session.currentQuestionText = data.question;
+        session.askedQuestions.push(data.question);
+        document.getElementById('call-q-loading').style.display = 'none';
+        document.getElementById('call-q-content').style.display = 'block';
+        document.getElementById('call-q-text').textContent = data.question;
+        setOrbState('speaking');
+        setAiStatus('Asking question...');
+        await speakAndWait(data.question);
+        setOrbState('idle');
+        setAiStatus('Your turn — tap mic to answer');
+        enableCallMic();
+      } catch(err) { setAiStatus('Error — please refresh'); console.error(err); }
+    }
+
+    function enableCallMic() {
+      const btn = document.getElementById('call-mic-btn');
+      btn.disabled = false;
+      btn.classList.remove('mic-ai-speaking');
+      document.getElementById('call-mic-status').textContent = 'Tap mic to answer';
+    }
+
+    function disableCallMic(msg) {
+      const btn = document.getElementById('call-mic-btn');
+      btn.disabled = true;
+      btn.classList.add('mic-ai-speaking');
+      document.getElementById('call-mic-status').textContent = msg || 'Please wait...';
+    }
+
+    function toggleCallMic() {
+      if (isRecording) stopCallRecording();
+      else startCallRecording();
+    }
+
+    function startCallRecording() {
+      if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) { setAiStatus('Speech recognition not supported'); return; }
+      committedTranscript = ""; currentTranscript = "";
+      document.getElementById('call-transcript-area').style.display = 'block';
+      document.getElementById('call-transcript-text').textContent = '';
+      startCallRecognitionSession();
+      startSilenceDetection();
+      setOrbState('listening');
+      setAiStatus('Listening...');
+      document.getElementById('call-mic-icon').textContent = '⏹';
+      document.getElementById('call-mic-btn').classList.add('mic-recording');
+      document.getElementById('call-mic-status').textContent = 'Tap to stop';
+    }
+
+    function stopCallRecording() {
+      isRecording = false;
+      stopSilenceDetection();
+      if (recognition) { try { recognition.stop(); } catch(e) {} recognition = null; }
+      currentTranscript = committedTranscript.trim();
+      document.getElementById('call-mic-icon').textContent = '🎤';
+      document.getElementById('call-mic-btn').classList.remove('mic-recording');
+      disableCallMic('Cleaning up transcript...');
+      setOrbState('thinking');
+      setAiStatus('Cleaning up transcript...');
+      if (currentTranscript) {
+        cleanAndSubmitCallAnswer(currentTranscript);
+      } else {
+        setAiStatus('No answer detected — tap mic to try again');
+        enableCallMic();
+        setOrbState('idle');
+      }
+    }
+
+    async function cleanAndSubmitCallAnswer(rawAnswer) {
+      const cleaned = await cleanTranscript(rawAnswer);
+      // Update transcript display to show cleaned version
+      document.getElementById('call-transcript-text').textContent = cleaned;
+      disableCallMic('Processing...');
+      setAiStatus('Processing your answer...');
+      submitCallAnswer(cleaned);
+    }
+
+    function startCallRecognitionSession() {
+      isRecording = true;
+      recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.continuous = true; recognition.interimResults = true; recognition.lang = 'en-US';
+      recognition.onresult = (event) => {
+        let nf='', interim='';
+        for (let i=event.resultIndex; i<event.results.length; i++) {
+          const t=event.results[i][0].transcript;
+          if (event.results[i].isFinal) nf+=t+' '; else interim+=t;
+        }
+        if (nf) committedTranscript+=nf;
+        currentTranscript = committedTranscript+interim;
+        document.getElementById('call-transcript-text').textContent = currentTranscript.trim();
+        resetSilenceTimer();
+      };
+      recognition.onerror = (e) => { if (e.error==='no-speech'||e.error==='aborted') return; console.warn('Call rec error:',e.error); };
+      recognition.onend = () => { if (!isRecording) return; setTimeout(()=>{ if(isRecording) { try { startCallRecognitionSession(); } catch(e){} } }, 100); };
+      recognition.start();
+    }
+
+    async function submitCallAnswer(answer) {
+      try {
+        // Fire evaluation and confidence in parallel
+        const [res, confData] = await Promise.all([
+          fetch('/evaluate-answer', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ domain:session.domain, difficulty:session.difficulty, question:session.currentQuestionText, answer }) }),
+          fetchConfidence(session.currentQuestionText, answer)
+        ]);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        session.qaHistory.push({ question:session.currentQuestionText, answer, scores:{technical_score:data.technical_score, depth_score:data.depth_score, clarity_score:data.clarity_score, overall_score:data.overall_score}, feedback:data.short_feedback });
+
+        document.getElementById('call-score-tech').textContent    = `Tech: ${data.technical_score}/10`;
+        document.getElementById('call-score-depth').textContent   = `Depth: ${data.depth_score}/10`;
+        document.getElementById('call-score-clarity').textContent = `Clarity: ${data.clarity_score}/10`;
+        document.getElementById('call-score-overall').textContent = `Overall: ${data.overall_score}/10`;
+        document.getElementById('call-score-overall').className   = `call-score-pill call-score-overall ${getScoreClass(data.overall_score)}`;
+        document.getElementById('call-feedback-text').textContent = data.short_feedback;
+        document.getElementById('call-confidence-block').style.display = 'none';
+        document.getElementById('call-feedback-overlay').style.display = 'flex';
+        // Render confidence in call overlay
+        renderConfidence(confData, 'call-');
+
+        setOrbState('speaking');
+        await speakAndWait(data.short_feedback);
+
+        // Feature 5: once per session on weakest answer
+        if (!sessionInterruptionUsed && data.overall_score < 7) {
+          const scores = session.qaHistory.map(q=>q.scores.overall_score);
+          const lowest = Math.min(...scores);
+          if (data.overall_score <= lowest) {
+            await handleCallInterruption(answer, data);
+          }
+        }
+
+        const isLast = session.currentQuestion >= session.numQuestions;
+        let reaction;
+        if (isLast) { const l=["That wraps up our session.","Interview complete.","Last question done."]; reaction=l[Math.floor(Math.random()*l.length)]; }
+        else {
+          try { const rr=await fetch('/generate-reaction',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain:session.domain,question:session.currentQuestionText,answer,short_feedback:data.short_feedback,overall_score:data.overall_score})}); const rd=await rr.json(); reaction=rd.reaction||"Let's continue."; }
+          catch(e) { reaction="Let's continue."; }
+        }
+        setOrbState('speaking');
+        await speakAndWait(reaction);
+
+        if (!isLast) {
+          const pm = buildProgressMessage(session.currentQuestion, session.numQuestions, data.overall_score);
+          await speakAndWait(pm);
+        }
+
+        setOrbState('idle');
+        setAiStatus(isLast ? 'Ready for your report' : 'Ready for next question');
+        document.getElementById('btn-call-next').textContent = isLast ? "View Final Report →" : "Next Question →";
+        document.getElementById('btn-call-next').disabled = false;
+
+      } catch(err) { setAiStatus('Error — tap mic to retry'); enableCallMic(); setOrbState('idle'); console.error(err); }
+    }
+
+    async function callNextQuestion() {
+      document.getElementById('btn-call-next').disabled = true;
+      stopSpeech();
+      if (session.currentQuestion >= session.numQuestions) { showFinalReport(); return; }
+      setOrbState('thinking');
+      setAiStatus('Loading next question...');
+      await loadCallQuestion();
+    }
+
+    function callSubmitNow() { clearSilenceCountdown(); document.getElementById('call-silence-prompt').style.display='none'; stopCallRecording(); }
+    function callKeepRecording() { clearSilenceCountdown(); document.getElementById('call-silence-prompt').style.display='none'; silenceSeconds=0; }
+    function confirmEndCall() { if (confirm("End the interview? All progress will be lost.")) resetInterview(); }
+
+    // ── Feature 4: Silence Detection ──────────────────────────────────────
+    const SILENCE_THRESHOLD = 25;
+
+    function startSilenceDetection() {
+      silenceSeconds = 0;
+      stopSilenceDetection();
+      silenceTimer = setInterval(() => {
+        silenceSeconds++;
+        if (silenceSeconds >= SILENCE_THRESHOLD) { stopSilenceDetection(); showSilencePrompt(); }
+      }, 1000);
+    }
+
+    function stopSilenceDetection() {
+      if (silenceTimer) { clearInterval(silenceTimer); silenceTimer = null; }
+      clearSilenceCountdown();
+    }
+
+    function resetSilenceTimer() { silenceSeconds = 0; }
+
+    function showSilencePrompt() {
+      if (!isRecording) return;
+      silenceCountdownVal = 8;
+      document.getElementById('call-silence-countdown').textContent = silenceCountdownVal;
+      document.getElementById('call-silence-prompt').style.display = 'flex';
+      silenceCountdownTimer = setInterval(() => {
+        silenceCountdownVal--;
+        document.getElementById('call-silence-countdown').textContent = silenceCountdownVal;
+        if (silenceCountdownVal <= 0) { clearSilenceCountdown(); document.getElementById('call-silence-prompt').style.display='none'; stopCallRecording(); }
+      }, 1000);
+    }
+
+    function clearSilenceCountdown() { if (silenceCountdownTimer) { clearInterval(silenceCountdownTimer); silenceCountdownTimer=null; } }
+
+    // ── Feature 5: AI interruption (once per session) ─────────────────────
+    async function handleCallInterruption(answer, evalData) {
+      sessionInterruptionUsed = true;
+      try {
+        const fuRes = await fetch('/generate-followup', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ domain:session.domain, question:session.currentQuestionText, answer, short_feedback:evalData.short_feedback, overall_score:evalData.overall_score }) });
+        const fuData = await fuRes.json();
+        if (!fuData.followup) return;
+        document.getElementById('call-interruption-q').textContent = fuData.followup;
+        document.getElementById('call-interruption-block').style.display = 'block';
+        document.getElementById('call-interruption-transcript').style.display = 'none';
+        document.getElementById('call-interruption-transcript').textContent = '';
+        document.getElementById('btn-submit-interruption').style.display = 'none';
+        setOrbState('speaking');
+        setAiStatus('Follow-up...');
+        await speakAndWait("One follow-up: " + fuData.followup);
+        setOrbState('listening');
+        setAiStatus('Your answer...');
+      } catch(e) { console.warn('Interruption failed:', e); }
+    }
+
+    function toggleInterruptMic() {
+      const btn = document.getElementById('call-interrupt-mic-btn');
+      if (!isInterruptRecording) {
+        interruptCommitted = "";
+        interruptRecognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        interruptRecognition.continuous = true; interruptRecognition.interimResults = true; interruptRecognition.lang = 'en-US';
+        isInterruptRecording = true;
+        btn.textContent = '⏹'; btn.classList.add('mic-recording');
+        interruptRecognition.onresult = (ev) => {
+          let nf='', interim='';
+          for (let i=ev.resultIndex; i<ev.results.length; i++) { const t=ev.results[i][0].transcript; if(ev.results[i].isFinal) nf+=t+' '; else interim+=t; }
+          if (nf) interruptCommitted+=nf;
+          document.getElementById('call-interruption-transcript').textContent = (interruptCommitted+interim).trim();
+          document.getElementById('call-interruption-transcript').style.display = 'block';
+          document.getElementById('btn-submit-interruption').style.display = 'inline-flex';
+        };
+        interruptRecognition.onerror = (e) => { if(e.error==='aborted'||e.error==='no-speech') return; };
+        interruptRecognition.onend = () => { if(isInterruptRecording) { try { interruptRecognition.start(); } catch(e){} } };
+        interruptRecognition.start();
+      } else {
+        isInterruptRecording = false;
+        try { interruptRecognition.stop(); } catch(e) {}
+        interruptRecognition = null;
+        btn.textContent = '🎤'; btn.classList.remove('mic-recording');
+      }
+    }
+
+    async function submitInterruption() {
+      const ans = interruptCommitted.trim();
+      if (!ans) return;
+      isInterruptRecording = false;
+      if (interruptRecognition) { try { interruptRecognition.stop(); } catch(e) {} interruptRecognition = null; }
+      document.getElementById('call-interruption-block').style.display = 'none';
+      try {
+        const res = await fetch('/evaluate-answer', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ domain:session.domain, difficulty:session.difficulty, question:document.getElementById('call-interruption-q').textContent, answer:ans }) });
+        const data = await res.json();
+        setOrbState('speaking');
+        await speakAndWait(data.short_feedback);
+        setOrbState('idle');
+        if (session.qaHistory.length > 0) session.qaHistory[session.qaHistory.length-1].interruption = { answer:ans, score:data.overall_score };
+      } catch(e) { console.warn('Interruption eval failed:', e); }
+    }
+
+    function skipInterruption() {
+      isInterruptRecording = false;
+      if (interruptRecognition) { try { interruptRecognition.stop(); } catch(e) {} interruptRecognition = null; }
+      document.getElementById('call-interruption-block').style.display = 'none';
+    }
+
+    // ── Call UI helpers ────────────────────────────────────────────────────
+    function startCallTimer() {
+      callSeconds = 0;
+      if (callTimerInterval) clearInterval(callTimerInterval);
+      callTimerInterval = setInterval(() => {
+        callSeconds++;
+        const m=String(Math.floor(callSeconds/60)).padStart(2,'0');
+        const s=String(callSeconds%60).padStart(2,'0');
+        document.getElementById('call-timer').textContent = `${m}:${s}`;
+      }, 1000);
+    }
+
+    function stopCallTimer() { if (callTimerInterval) { clearInterval(callTimerInterval); callTimerInterval=null; } }
+
+    function setOrbState(state) {
+      document.getElementById('orb-system').className = 'orb-system orb-' + state;
+    }
+
+    function setAiStatus(text) { document.getElementById('ai-status-text').textContent = text; }
+
+    // ── FINAL REPORT — Feature 6 ───────────────────────────────────────────
+    async function showFinalReport() {
+      stopSpeech(); stopCallTimer(); stopSilenceDetection();
+      isRecording = false;
+      if (recognition) { try { recognition.stop(); } catch(e) {} recognition = null; }
+      showScreen('screen-report');
+      document.getElementById('report-subtitle').textContent = `${session.domain} · ${session.difficulty} · ${session.numQuestions} Questions`;
+      document.getElementById('report-loading').style.display = 'flex';
+      document.getElementById('report-content').style.display = 'none';
+      try {
+        const res = await fetch('/final-report', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ domain:session.domain, difficulty:session.difficulty, qa_history:session.qaHistory }) });
+        const report = await res.json();
+        if (report.error) throw new Error(report.error);
+        renderReport(report);
+        document.getElementById('report-loading').style.display = 'none';
+        document.getElementById('report-content').style.display = 'block';
+        document.getElementById('btn-speak-report').style.display = 'inline-flex';
+        setTimeout(() => animateScoreArc(report.average_score), 400);
+        if (session.mode === 'voice') setTimeout(() => speakFinalReport(), 900);
+      } catch(err) {
+        document.getElementById('report-loading').innerHTML = `<p style="color:#e05c6a">Report failed: ${err.message}</p>`;
+      }
+    }
+
+    function renderReport(report) {
+      document.getElementById('report-score-num').textContent = report.average_score?.toFixed(1) ?? '--';
+      const rl = document.getElementById('report-readiness');
+      rl.textContent = report.readiness_level ?? '--';
+      const lv = (report.readiness_level||'').toLowerCase();
+      rl.className = 'report-readiness ' + (lv.includes('strong')?'readiness-strong':lv.includes('ready')?'readiness-ready':lv.includes('getting')?'readiness-getting':'readiness-needs');
+      document.getElementById('report-summary').textContent = report.overall_summary ?? '';
+      document.getElementById('report-encouragement').textContent = report.encouragement ?? '';
+      document.getElementById('report-strengths').innerHTML = (report.strongest_areas||[]).map(a=>`<li>${a}</li>`).join('');
+      document.getElementById('report-improvements').innerHTML = (report.top_improvements||[]).map(a=>`<li>${a}</li>`).join('');
+      document.getElementById('report-questions-list').innerHTML = session.qaHistory.map((item,i)=>`
+        <div class="report-q-card">
+          <div class="report-q-header">
+            <span class="report-q-num">Q${i+1}</span>
+            <span class="report-q-score ${getScoreClass(item.scores.overall_score)}">${item.scores.overall_score}/10</span>
+          </div>
+          <div class="report-q-text">${item.question}</div>
+          <div class="report-q-feedback">${item.feedback}</div>
+        </div>`).join('');
+    }
+
+    function animateScoreArc(score) {
+      const offset = 326.7 * (1 - Math.min(Math.max((score||0)/10,0),1));
+      document.getElementById('report-score-arc').style.strokeDashoffset = offset;
+    }
+
+    async function speakFinalReport() {
+      const scoreNum  = document.getElementById('report-score-num').textContent;
+      const readiness = document.getElementById('report-readiness').textContent;
+      const strengths = Array.from(document.querySelectorAll('#report-strengths li')).map(li=>li.textContent);
+      const improv    = Array.from(document.querySelectorAll('#report-improvements li')).map(li=>li.textContent);
+      const encour    = document.getElementById('report-encouragement').textContent;
+
+      const heroEl   = document.querySelector('.report-hero');
+      const strongEl = document.querySelector('.report-col-strong');
+      const weakEl   = document.querySelector('.report-col-weak');
+
+      const sections = [
+        { el: heroEl,   text: "Here's your performance summary." },
+        { el: heroEl,   text: `Overall score: ${scoreNum} out of 10. You are ${readiness}.` },
+        { el: strongEl, text: strengths.length ? `Your strongest areas were: ${strengths.join(', ')}.` : null },
+        { el: weakEl,   text: improv.length ? `Focus on improving: ${improv.join(', ')}.` : null },
+        { el: heroEl,   text: encour || null },
+      ];
+
+      for (const s of sections) {
+        if (!s.text) continue;
+        if (s.el) s.el.classList.add('report-speaking');
+        await speakAndWait(s.text);
+        if (s.el) s.el.classList.remove('report-speaking');
+        await sleep(200);
+      }
+    }
+
+    // ── Text mode follow-up ────────────────────────────────────────────────
+    async function handleFollowUp(originalAnswer, evalData) {
+      try {
+        const fuRes = await fetch('/generate-followup', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ domain:session.domain, question:session.currentQuestionText, answer:originalAnswer, short_feedback:evalData.short_feedback, overall_score:evalData.overall_score }) });
+        const fuData = await fuRes.json();
+        if (!fuData.followup) return;
+        document.getElementById('followup-question-text').textContent = fuData.followup;
+        document.getElementById('followup-answer-input').value = '';
+        document.getElementById('followup-result').style.display = 'none';
+        document.getElementById('followup-block').style.display = 'block';
+        document.getElementById('btn-next').disabled = true;
+      } catch(e) { console.warn('Follow-up failed:', e); }
+    }
+
+    async function submitFollowUp() {
+      const btn = document.getElementById('btn-submit-followup');
+      const fuAnswer = document.getElementById('followup-answer-input').value.trim();
+      if (!fuAnswer) { document.getElementById('followup-answer-input').classList.add('shake'); setTimeout(()=>document.getElementById('followup-answer-input').classList.remove('shake'),400); return; }
+      btn.disabled=true; btn.textContent='Evaluating...';
+      try {
+        const res = await fetch('/evaluate-answer', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ domain:session.domain, difficulty:session.difficulty, question:document.getElementById('followup-question-text').textContent, answer:fuAnswer }) });
+        const data = await res.json();
+        const el = document.getElementById('followup-result');
+        el.style.display='block';
+        el.innerHTML=`<div class="followup-score-row"><span class="followup-score ${getScoreClass(data.overall_score)}">${data.overall_score}/10</span><span class="followup-feedback-text">${data.short_feedback}</span></div>`;
+        if (session.qaHistory.length>0) session.qaHistory[session.qaHistory.length-1].followup={answer:fuAnswer,score:data.overall_score};
+      } catch(e) { console.warn(e); }
+      finally { btn.disabled=false; btn.textContent='Submit Follow-up →'; document.getElementById('btn-next').disabled=false; document.getElementById('btn-skip-followup').style.display='none'; }
+    }
+
+    function skipFollowUp() { document.getElementById('followup-block').style.display='none'; document.getElementById('btn-next').disabled=false; }
+
+    // ── Confidence Scoring ────────────────────────────────────────────────
+    async function fetchConfidence(question, answer) {
+      try {
+        const res = await fetch('/analyze-confidence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question, answer })
+        });
+        return await res.json();
+      } catch(e) {
+        console.warn('Confidence fetch failed:', e);
+        return null;
+      }
+    }
+
+    function renderConfidence(data, prefix) {
+      // prefix = '' for text mode, 'call-' for call mode
+      if (!data || data.error) return;
+
+      const p = prefix || '';
+      const blockId   = p ? 'call-confidence-block' : 'confidence-block';
+      const batteryId = p ? 'call-battery-segments' : 'battery-segments';
+      const overallId = p ? 'call-confidence-overall-text' : 'confidence-overall-text';
+      const tipId     = p ? 'call-confidence-tip' : 'confidence-tip';
+
+      const overall = data.overall || 5;
+      const TOTAL_SEGMENTS = 10;
+
+      // Overall text
+      document.getElementById(overallId).textContent = overall + '/10';
+      document.getElementById(overallId).className = 'confidence-overall ' + getScoreClass(overall);
+
+      // Battery segments
+      const batteryEl = document.getElementById(batteryId);
+      batteryEl.innerHTML = '';
+      for (let i = 0; i < TOTAL_SEGMENTS; i++) {
+        const seg = document.createElement('div');
+        seg.className = 'battery-seg';
+        const filled = i < overall;
+        if (filled) {
+          seg.classList.add('filled');
+          // Color by level
+          if (overall >= 8)      seg.classList.add('seg-high');
+          else if (overall >= 5) seg.classList.add('seg-mid');
+          else                   seg.classList.add('seg-low');
+          // Staggered animation delay
+          seg.style.animationDelay = (i * 60) + 'ms';
+        }
+        batteryEl.appendChild(seg);
+      }
+
+      // 4 dimension mini bars
+      const dims = ['certainty', 'structure', 'assertiveness', 'vocabulary'];
+      dims.forEach(dim => {
+        const score = data[dim] || 5;
+        const fillId  = p ? 'call-dim-' + dim : 'dim-' + dim;
+        const scoreId = p ? 'call-dim-' + dim + '-score' : 'dim-' + dim + '-score';
+        const fillEl  = document.getElementById(fillId);
+        const scoreEl = document.getElementById(scoreId);
+        if (fillEl) {
+          fillEl.style.width = (score * 10) + '%';
+          fillEl.className = 'conf-dim-fill ' + getScoreClass(score);
+        }
+        if (scoreEl) scoreEl.textContent = score;
+      });
+
+      // Coaching tip
+      const tipEl = document.getElementById(tipId);
+      if (tipEl) tipEl.textContent = data.coaching_tip || '';
+
+      // Show block with animation
+      const block = document.getElementById(blockId);
+      if (block) {
+        block.style.display = 'block';
+        block.classList.add('conf-animate-in');
+      }
+    }
+
+        // ── AI Transcript Cleanup ──────────────────────────────────────────────
+    async function cleanTranscript(rawTranscript) {
+      // Skip cleanup for very short answers — not worth the API call
+      if (!rawTranscript || rawTranscript.trim().length < 15) return rawTranscript;
+      try {
+        const res = await fetch('/cleanup-transcript', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            raw_transcript: rawTranscript,
+            domain: session.domain,
+            question: session.currentQuestionText
+          })
+        });
+        const data = await res.json();
+        // data.warning means cleanup failed gracefully — raw was returned
+        if (data.warning) console.warn('Cleanup warning:', data.warning);
+        return data.cleaned_transcript || rawTranscript;
+      } catch(e) {
+        // Never block evaluation — silently fall back to raw
+        console.warn('Transcript cleanup failed, using raw:', e);
+        return rawTranscript;
+      }
+    }
+
+    // ── TTS ────────────────────────────────────────────────────────────────
+    function speakAndWait(text) {
+      return new Promise(resolve => {
+        if (!('speechSynthesis' in window)) { resolve(); return; }
+        stopSpeech();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang='en-US'; u.rate=1.05;
+        if (preferredVoice) u.voice=preferredVoice;
+        u.onend=()=>resolve(); u.onerror=()=>resolve();
+        speechSynthesis.speak(u);
+      });
+    }
+
+    function speak(text) {
+      if (!('speechSynthesis' in window)) return;
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang='en-US'; u.rate=1.05;
+      if (preferredVoice) u.voice=preferredVoice;
+      speechSynthesis.speak(u);
+    }
+
+    function stopSpeech() { if ('speechSynthesis' in window) speechSynthesis.cancel(); }
+
+    function buildProgressMessage(current, total, score) {
+      const remaining = total - current;
+      if (remaining===0) return "That was the last question.";
+      const sc = score>=8?"Strong answer.":score>=6?"Good effort.":score>=4?"Keep pushing.":"Room to improve.";
+      const cc = remaining===1?"Just one question left.":`${remaining} questions to go.`;
+      return `${sc} ${cc}`;
+    }
+
+    // ── Shared helpers ─────────────────────────────────────────────────────
+    function showScreen(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+    function getScoreClass(s) { return s>=8?'score-excellent':s>=6?'score-good':s>=4?'score-average':'score-poor'; }
+    function updateWordCount() { const t=document.getElementById('answer-input').value.trim(); const c=t?t.split(/\s+/).length:0; document.getElementById('word-count').textContent=c+" word"+(c!==1?"s":""); }
+    function confirmReset() { if (confirm("Reset interview? All progress will be lost.")) resetInterview(); }
+    function resetInterview() {
+      stopSpeech(); stopCallTimer(); stopSilenceDetection();
+      isRecording=false;
+      if (recognition) { try{recognition.stop();}catch(e){} recognition=null; }
+      session.currentQuestion=0; session.askedQuestions=[]; session.qaHistory=[]; session.currentQuestionText="";
+      sessionInterruptionUsed=false;
+      showScreen('screen-setup');
+    }
+    function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+
+    // ── Resume helpers ─────────────────────────────────────────────────────
+    function switchResumeTab(tab) {
+      document.getElementById('resume-tab-paste').classList.toggle('active', tab === 'paste');
+      document.getElementById('resume-tab-upload').classList.toggle('active', tab === 'upload');
+      document.getElementById('resume-paste-area').style.display  = tab === 'paste'  ? 'block' : 'none';
+      document.getElementById('resume-upload-area').style.display = tab === 'upload' ? 'block' : 'none';
+    }
+
+    function onResumeTextInput() {
+      const val = document.getElementById('resume-text-input').value;
+      const len = val.length;
+      const countEl = document.getElementById('resume-char-count');
+      countEl.textContent = len + ' / 3000 characters';
+      countEl.style.color = len > 2800 ? '#e05c6a' : 'var(--text-muted)';
+      if (len > 3000) document.getElementById('resume-text-input').value = val.slice(0, 3000);
+      updateResumeStatus(len > 10);
+    }
+
+    function updateResumeStatus(hasContent) {
+      const statusEl = document.getElementById('resume-status');
+      const clearBtn = document.getElementById('resume-clear-btn');
+      if (hasContent) {
+        statusEl.style.display = 'flex';
+        statusEl.innerHTML = '<span class="resume-status-dot"></span> Resume loaded — questions will be tailored to your background';
+        clearBtn.style.display = 'inline-flex';
+      } else {
+        statusEl.style.display = 'none';
+        clearBtn.style.display = 'none';
+      }
+    }
+
+    function clearResume() {
+      document.getElementById('resume-text-input').value = '';
+      document.getElementById('resume-char-count').textContent = '0 / 3000 characters';
+      updateResumeStatus(false);
+      document.getElementById('resume-file-input').value = '';
+      document.getElementById('resume-drop-text').textContent = 'Drop a .txt or .pdf file here, or click to browse';
+      document.getElementById('resume-dropzone').classList.remove('dropzone-loaded');
+    }
+
+    async function onResumeFileSelected(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const dropText = document.getElementById('resume-drop-text');
+      const dropzone = document.getElementById('resume-dropzone');
+      dropText.textContent = 'Reading file...';
+      try {
+        let text = '';
+        if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+          text = await readFileAsText(file);
+        } else if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+          text = await readPdfFile(file);
+        } else {
+          dropText.textContent = 'Unsupported file type. Use .txt or .pdf';
+          return;
+        }
+        const trimmed = text.trim().slice(0, 3000);
+        document.getElementById('resume-text-input').value = trimmed;
+        document.getElementById('resume-char-count').textContent = trimmed.length + ' / 3000 characters';
+        dropText.textContent = '\u2713 ' + file.name + ' loaded (' + trimmed.length + ' chars)';
+        dropzone.classList.add('dropzone-loaded');
+        updateResumeStatus(trimmed.length > 10);
+      } catch(err) {
+        dropText.textContent = 'Failed to read file: ' + err.message;
+        console.error(err);
+      }
+    }
+
+    function readFileAsText(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = e => resolve(e.target.result);
+        reader.onerror = () => reject(new Error('Could not read file'));
+        reader.readAsText(file);
+      });
+    }
+
+    async function readPdfFile(file) {
+      if (!window.pdfjsLib) {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      }
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        fullText += content.items.map(function(item) { return item.str; }).join(' ') + '\n';
+      }
+      return fullText;
+    }
+
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src; s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    window.addEventListener('load', function() {
+      const dz = document.getElementById('resume-dropzone');
+      if (!dz) return;
+      dz.addEventListener('dragover',  function(e) { e.preventDefault(); dz.classList.add('dragover'); });
+      dz.addEventListener('dragleave', function() { dz.classList.remove('dragover'); });
+      dz.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dz.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file) onResumeFileSelected({ target: { files: [file] } });
+      });
+    });
+
+
+  </script>
+</body>
+</html>
