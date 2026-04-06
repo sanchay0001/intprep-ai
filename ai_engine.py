@@ -61,22 +61,6 @@ def evaluate_answer(domain: str, difficulty: str, question: str, answer: str) ->
             "short_feedback": "No answer was provided. Always attempt an answer in a real interview.",
             "ideal_answer_hint": "Explain your reasoning even if unsure."
         }
-
-    word_count = len(answer.strip().split())
-
-    # Very short answers — penalise directly without sending to model
-    # Model tends to be generous even on 1-2 sentence answers
-    if word_count < 15:
-        score = 1 if word_count <= 3 else 2 if word_count <= 6 else 3
-        return {
-            "technical_score": score,
-            "depth_score": 1,
-            "clarity_score": score,
-            "overall_score": score,
-            "short_feedback": f"Your answer was too short ({word_count} words). A strong interview answer needs at least 4-6 full sentences covering the key concepts.",
-            "ideal_answer_hint": "Try to explain your reasoning step by step, give an example, and cover the main concepts in depth."
-        }
-
     prompt = get_evaluation_prompt(domain, difficulty, question, answer)
     raw_response = _call_groq(prompt, max_tokens=600)
     return _parse_json_response(raw_response)
@@ -150,11 +134,15 @@ def analyze_confidence(question: str, answer: str) -> dict:
     Uses the cleanup Groq client (secondary key) to save primary key quota.
     Falls back to neutral scores on any failure — never blocks evaluation.
     """
-    if not answer or len(answer.strip()) < 20:
+    word_count = len(answer.strip().split()) if answer else 0
+
+    # Hard-coded low scores for very short answers — never send to model
+    if not answer or word_count < 15:
+        score = 1 if word_count <= 2 else 2 if word_count <= 5 else 3
         return {
-            "certainty": 5, "structure": 5, "assertiveness": 5,
-            "vocabulary": 5, "overall": 5,
-            "coaching_tip": "Give a fuller answer to get confidence feedback."
+            "certainty": score, "structure": 1, "assertiveness": score,
+            "vocabulary": score, "overall": score,
+            "coaching_tip": "Aim for at least 5-6 full sentences to demonstrate real knowledge."
         }
 
     prompt = get_confidence_prompt(question, answer)
