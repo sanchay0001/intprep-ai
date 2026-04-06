@@ -130,6 +130,7 @@ Respond ONLY with JSON:
 }}"""
 
 def get_confidence_prompt(question: str, answer: str) -> str:
+    word_count = len(answer.strip().split()) if answer else 0
     json_schema = """
 {
   "certainty": <1-10>,
@@ -141,45 +142,36 @@ def get_confidence_prompt(question: str, answer: str) -> str:
 }"""
     return f"""You are analysing a spoken job interview answer for confidence and communication quality.
 
-SCORING PHILOSOPHY — this is critical, read carefully:
-- Be VERY generous. A normal, reasonable spoken answer should score 8 or 9.
-- Score of 10 = exceptionally polished, like a practiced public speaker
-- Score of 8-9 = normal good answer, candidate knows their stuff and speaks clearly — this is the DEFAULT for any decent attempt
-- Score of 6-7 = slightly hesitant or a bit disorganised, but still solid
-- Score of 4-5 = noticeably weak delivery, lots of hedging or poor structure
-- Score of 1-3 = only for genuinely incoherent, rambling, or extremely unconfident answers
-- If the candidate demonstrates knowledge of the topic, default to 8+
-- Occasional "um", "like", "you know" are completely normal in speech — ignore them entirely
-- Do NOT penalise thinking pauses or natural conversational rhythm
-- This is transcribed speech, not an essay — judge accordingly
+Answer word count: {word_count} words
+
+SCORING RULES — follow these strictly:
+
+SHORT ANSWERS (under 15 words): Score 1-3 across all dimensions. These answers are too brief to demonstrate knowledge or confidence. A 1-2 word answer must score 1-2 overall.
+
+MEDIUM ANSWERS (15-40 words): Score 4-6. Some effort shown but not enough depth.
+
+FULL ANSWERS (40+ words): Score based on quality:
+- 8-9 = normal good spoken answer, candidate knows their stuff — this is the DEFAULT for genuine 40+ word attempts
+- 6-7 = slightly hesitant or disorganised but solid
+- 4-5 = noticeably weak, lots of hedging or poor structure
+- 1-3 = incoherent, rambling, or extremely unconfident
+
+IMPORTANT:
+- Occasional "um", "like", "you know" are normal in speech — do not penalise them
+- This is transcribed speech, not written text — judge accordingly
+- If the answer is just 1-5 words, overall MUST be 1 or 2 — no exceptions
 
 Question: {question}
 Answer: {answer}
 
-Score these 4 dimensions:
+Score these 4 dimensions (follow the word count rules above):
 
-1. CERTAINTY — Does the candidate generally sound like they know what they're talking about?
-   8-9 (default): speaks with reasonable confidence, makes clear statements
-   6-7: hedges more than necessary but still gets the point across
-   Below 5: extreme hedging on every single point, sounds completely unsure throughout
-
-2. STRUCTURE — Does the answer make sense and flow reasonably?
-   8-9 (default): answer is followable and makes logical sense
-   6-7: a bit jumpy but the core points come through
-   Below 5: genuinely hard to follow, no clear direction at all
-
+1. CERTAINTY — Does the candidate sound like they know what they're talking about?
+2. STRUCTURE — Does the answer have a logical flow?
 3. ASSERTIVENESS — Does the candidate own their answer?
-   8-9 (default): states their view and backs it up, even if not perfectly
-   6-7: takes a position but over-qualifies it
-   Below 5: constant apologising, refuses to commit to any position
+4. VOCABULARY — Is the language precise and domain-appropriate?
 
-4. VOCABULARY — Does the language suit the domain reasonably well?
-   8-9 (default): uses domain terms naturally, sounds like someone in the field
-   6-7: mix of domain and everyday language, still competent
-   Below 5: no domain knowledge visible at all, completely vague throughout
-
-Coaching tip: write ONE short, encouraging tip (max 15 words).
-Be positive and specific. Frame it as "to go from good to great" not "you did this wrong".
+Coaching tip: ONE short encouraging tip (max 15 words). If answer is very short, tell them to elaborate more.
 
 Respond ONLY with valid JSON — no extra text:
 {json_schema}"""

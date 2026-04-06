@@ -61,6 +61,22 @@ def evaluate_answer(domain: str, difficulty: str, question: str, answer: str) ->
             "short_feedback": "No answer was provided. Always attempt an answer in a real interview.",
             "ideal_answer_hint": "Explain your reasoning even if unsure."
         }
+
+    word_count = len(answer.strip().split())
+
+    # Very short answers — penalise directly without sending to model
+    # Model tends to be generous even on 1-2 sentence answers
+    if word_count < 15:
+        score = 1 if word_count <= 3 else 2 if word_count <= 6 else 3
+        return {
+            "technical_score": score,
+            "depth_score": 1,
+            "clarity_score": score,
+            "overall_score": score,
+            "short_feedback": f"Your answer was too short ({word_count} words). A strong interview answer needs at least 4-6 full sentences covering the key concepts.",
+            "ideal_answer_hint": "Try to explain your reasoning step by step, give an example, and cover the main concepts in depth."
+        }
+
     prompt = get_evaluation_prompt(domain, difficulty, question, answer)
     raw_response = _call_groq(prompt, max_tokens=600)
     return _parse_json_response(raw_response)
