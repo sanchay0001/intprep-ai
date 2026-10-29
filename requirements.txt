@@ -12,7 +12,7 @@ uvicorn==0.30.6           # ASGI server that runs our FastAPI app
 jinja2==3.1.4             # Renders HTML templates (our frontend pages)
 
 # ── Groq AI Integration ────────────────────────────────────────────────────────
-groq==0.13.0              # Official Groq SDK — 0.13.0 is stable on Python 3.11
+groq==1.7.0           
 httpx==0.27.2             # HTTP client — MUST be pinned to 0.27.x, newer breaks groq
 
 # ── Environment Variable Management ───────────────────────────────────────────

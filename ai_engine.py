@@ -21,13 +21,14 @@ load_dotenv()
 
 # Primary Groq client — all interview logic
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-MODEL = "llama-3.3-70b-versatile"
+MODEL = "openai/gpt-oss-120b"   # was: llama-3.3-70b-versatile (decommissioned 16 Aug 2026)
 
 # Secondary Groq client — transcript cleanup (separate key for free credits)
 # Falls back to primary key if GROQ_API_KEY_2 is not set
 _cleanup_key = os.getenv("GROQ_API_KEY_2") or os.getenv("GROQ_API_KEY")
 cleanup_client = Groq(api_key=_cleanup_key)
-CLEANUP_MODEL = "llama-3.1-8b-instant"   # smallest/fastest Groq model — perfect for cleanup
+CLEANUP_MODEL = "openai/gpt-oss-20b"   # was: llama-3.1-8b-instant (decommissioned 16 Aug 2026)
+
 
 def _call_groq(prompt: str, max_tokens: int = 1024, temperature: float = 0.7) -> str:
     response = groq_client.chat.completions.create(
@@ -35,8 +36,11 @@ def _call_groq(prompt: str, max_tokens: int = 1024, temperature: float = 0.7) ->
         messages=[{"role": "user", "content": prompt}],
         max_tokens=max_tokens,
         temperature=temperature,
+        reasoning_effort="low",       # GPT-OSS models reason internally by default — keep it light
+        reasoning_format="hidden",    # never leak reasoning tokens into .content
     )
     return response.choices[0].message.content.strip()
+
 
 def _parse_json_response(raw_text: str) -> dict:
     cleaned = re.sub(r"```(?:json)?", "", raw_text).strip()
@@ -46,10 +50,14 @@ def _parse_json_response(raw_text: str) -> dict:
         cleaned = json_match.group(0)
     return json.loads(cleaned)
 
+
 def generate_question(domain: str, difficulty: str, asked_questions: list[str], resume_context: str = "") -> str:
     prompt = get_question_prompt(domain, difficulty, asked_questions, resume_context)
-    question_text = _call_groq(prompt, max_tokens=200, temperature=0.4)
+    # max_tokens bumped 200 -> 300: reasoning_effort="low" still reserves some
+    # budget for internal thinking before the final answer is emitted.
+    question_text = _call_groq(prompt, max_tokens=300, temperature=0.4)
     return question_text.strip().strip('"').strip("'")
+
 
 def evaluate_answer(domain: str, difficulty: str, question: str, answer: str) -> dict:
     if not answer or answer.strip() == "":
@@ -62,27 +70,31 @@ def evaluate_answer(domain: str, difficulty: str, question: str, answer: str) ->
             "ideal_answer_hint": "Explain your reasoning even if unsure."
         }
     prompt = get_evaluation_prompt(domain, difficulty, question, answer)
-    raw_response = _call_groq(prompt, max_tokens=600)
+    raw_response = _call_groq(prompt, max_tokens=700)   # bumped 600 -> 700 for safety margin
     return _parse_json_response(raw_response)
+
 
 def generate_final_report(domain: str, difficulty: str, qa_history: list[dict]) -> dict:
     prompt = get_final_report_prompt(domain, difficulty, qa_history)
-    raw_response = _call_groq(prompt, max_tokens=900)
+    raw_response = _call_groq(prompt, max_tokens=1000)   # bumped 900 -> 1000 for safety margin
     return _parse_json_response(raw_response)
+
 
 def generate_reaction(domain: str, question: str, answer: str, feedback: str, overall_score: int) -> str:
     prompt = get_reaction_prompt(domain, question, answer, feedback, overall_score)
-    raw = _call_groq(prompt, max_tokens=80, temperature=0.5)
+    raw = _call_groq(prompt, max_tokens=150, temperature=0.5)   # bumped 80 -> 150
     return raw.strip().strip('"').strip("'")
+
 
 def generate_followup(domain: str, question: str, answer: str, feedback: str, overall_score: int) -> str:
     prompt = get_followup_prompt(domain, question, answer, feedback, overall_score)
-    raw = _call_groq(prompt, max_tokens=100, temperature=0.6)
+    raw = _call_groq(prompt, max_tokens=180, temperature=0.6)   # bumped 100 -> 180
     return raw.strip().strip('"').strip("'")
+
 
 def cleanup_transcript(raw_transcript: str, domain: str, question: str) -> str:
     """
-    Uses a secondary Groq key + lightweight Llama model to clean up garbled
+    Uses a secondary Groq key + lightweight gpt-oss-20b model to clean up garbled
     speech-to-text output before evaluation.
     Fixes mishearing, removes filler words, repairs broken sentences.
     Never adds content the user didn't say — only cleans what's there.
@@ -114,8 +126,10 @@ Output ONLY the cleaned transcript text. No explanations, no labels, no quotes."
         response = cleanup_client.chat.completions.create(
             model=CLEANUP_MODEL,
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=1024,
-            temperature=0.1,   # low temp — we want deterministic cleanup, not creative
+            max_tokens=1200,              # bumped 1024 -> 1200 for reasoning headroom
+            temperature=0.1,              # low temp — we want deterministic cleanup, not creative
+            reasoning_effort="low",       # same fix as _call_groq — minimal internal thinking
+            reasoning_format="hidden",    # never leak reasoning tokens into .content
         )
         cleaned = response.choices[0].message.content.strip()
         cleaned = cleaned.strip('"').strip("'")   # strip any quotes the model adds
@@ -127,6 +141,7 @@ Output ONLY the cleaned transcript text. No explanations, no labels, no quotes."
         # Never block evaluation due to cleanup failure
         print(f"[cleanup_transcript] Groq cleanup failed, using raw: {e}")
         return raw_transcript
+
 
 def analyze_confidence(question: str, answer: str) -> dict:
     """
@@ -150,8 +165,10 @@ def analyze_confidence(question: str, answer: str) -> dict:
         response = cleanup_client.chat.completions.create(
             model=CLEANUP_MODEL,
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=200,
+            max_tokens=350,               # bumped 200 -> 350 for reasoning headroom
             temperature=0.2,
+            reasoning_effort="low",
+            reasoning_format="hidden",
         )
         raw = response.choices[0].message.content.strip()
         return _parse_json_response(raw)
